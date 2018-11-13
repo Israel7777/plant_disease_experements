@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import time
 from matplotlib import pyplot as plt
 
 from utils import *
@@ -169,45 +170,37 @@ def generate_floodfill_mask(bin_image):
     Returns:
         a mask to backgrounds adjacent to image edge
     """
-    mask = np.zeros((bin_image.shape[0], bin_image.shape[1]), dtype=np.uint8)
+    y_mask = np.full(
+        (bin_image.shape[0], bin_image.shape[1]), fill_value=255, dtype=np.uint8
+    )
+    x_mask = np.full(
+        (bin_image.shape[0], bin_image.shape[1]), fill_value=255, dtype=np.uint8
+    )
 
-    # remove background from image left edge
-    for x in range(0, bin_image.shape[0]):
-        for y in range(0, bin_image.shape[1]):
-            if bin_image[x, y] == 0:
-                mask[x, y] = 255
-            else:
-                # print('breat at:', x, y)
-                break
+    xs, ys = bin_image.shape[0], bin_image.shape[1]
 
-    # remove background from image right edge
-    for x in range(bin_image.shape[0] - 1, 0, -1):
-        for y in range(bin_image.shape[1] - 1, 0, -1):
-            if bin_image[x, y] == 0:
-                mask[x, y] = 255
-            else:
-                # print('breat at:', x, y)
-                break
+    for x in range(0, xs):
+        item_indexes = np.where(bin_image[x,:] != 0)[0]
+        # min_start_edge = ys
+        # max_final_edge = 0
+        if len(item_indexes):
+            start_edge, final_edge = item_indexes[0], item_indexes[-1]
+            x_mask[x, start_edge:final_edge] = 0
+            # if start_edge < min_start_edge:
+            #     min_start_edge = start_edge
+            # if final_edge > max_final_edge:
+            #     max_final_edge = final_edge
 
-    # remove background from image top edge
-    for y in range(0, bin_image.shape[1]):
-        for x in range(0, bin_image.shape[0]):
-            if bin_image[x, y] == 0:
-                mask[x, y] = 255
-            else:
-                # print('breat at:', x, y)
-                break
+    for y in range(0, ys):
+        item_indexes = np.where(bin_image[:,y] != 0)[0]
+        if len(item_indexes):
+            start_edge, final_edge = item_indexes[0], item_indexes[-1]
 
-    # remove background from image bottom edge
-    for y in range(bin_image.shape[1] - 1, 0, -1):
-        for x in range(bin_image.shape[0] - 1, 0, -1):
-            if bin_image[x, y] == 0:
-                mask[x, y] = 255
-            else:
-                # print('breat at:', x, y)
-                break
+            y_mask[start_edge:final_edge, y] = 0
+            # mask[:start_edge, y] = 255
+            # mask[final_edge:, y] = 255
 
-    return mask
+    return np.logical_or(x_mask, y_mask)
 
 
 def select_largest_obj(img_bin, lab_val=255, fill_mode=FILL['FLOOD'],
