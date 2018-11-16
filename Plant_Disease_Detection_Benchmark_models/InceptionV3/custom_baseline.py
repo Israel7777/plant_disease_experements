@@ -1,6 +1,5 @@
-import os, glob
-
 import tensorflow as tf
+from tensorflow.keras.layers import GlobalAveragePooling2D
 from tensorflow.keras.layers import concatenate
 from tensorflow.keras.layers import AveragePooling2D
 from tensorflow.keras.layers import MaxPooling2D
@@ -16,15 +15,10 @@ from tensorflow.keras.layers import Conv2D
 print('tf version: ', tf.__version__)
 
 try:
-    from .utils import get_nb_files, plot_training, train_model, TRAIN_DIR, NB_EPOCHS, BATCH_SIZE
+    from .utils import train_model, nb_classes, INPUT_SHAPE
 except:
-    from utils import get_nb_files, plot_training, train_model, TRAIN_DIR, NB_EPOCHS, BATCH_SIZE
+    from utils import train_model, nb_classes, INPUT_SHAPE
 
-
-
-# input image dimensions
-IM_WIDTH, IM_HEIGHT = 100, 100
-input_shape = (IM_WIDTH, IM_HEIGHT, 3)
 
 def conv2d_bn(x, filters, kernel_size, padding='same', strides=(1,1), name=None):
     """Convolution with batch normalization and relu activation"""
@@ -52,19 +46,12 @@ def Inceptionv3(nb_classes, input_tensor=None, input_shape=None):
         input = input_tensor
 
     # starting stem of inceptionv3 architecture
-    print('conv: ', input.shape)
     x = conv2d_bn(input, 32, 3, padding='valid', strides=(2,2))
-    print('conv: ', x.shape)
     x = conv2d_bn(x, 32, 3, padding='valid')
-    print('conv: ', x.shape)
     x = conv2d_bn(x, 64, 3)
-    print('pool: ', x.shape)
     x = MaxPooling2D(3, strides=(2,2))(x)
-    print('conv: ', x.shape)
     x = conv2d_bn(x, 80, 3, padding='valid')
-    print('conv: ', x.shape)
     x = conv2d_bn(x, 192, 3, padding='valid', strides=(2,2))
-    print('conv: ', x.shape)
     x = conv2d_bn(x, 288, 3)
 
     # 3 inceptions with kernel 5*5 factorized to two deep 3*3
@@ -120,19 +107,17 @@ def Inceptionv3(nb_classes, input_tensor=None, input_shape=None):
 
         x = concatenate([conv1x1, conv1x3, conv3x1, conv1x3dbl, conv3x1dbl, pool], name='inception3_mix' + str(i))
 
-    x = MaxPooling2D((8,8), padding='same')(x)
+    x = GlobalAveragePooling2D()(x)
 
     flattened = Flatten()(x)
-    print("flat shape: ", flattened.shape)
     outputs = Dense(nb_classes, activation='softmax')(flattened)
-    print("output shape: ", outputs.shape)
 
     model = Model(inputs=input, outputs=outputs)
 
     return model
 
 
-model = Inceptionv3(38, input_shape=input_shape)
+model = Inceptionv3(nb_classes, input_shape=INPUT_SHAPE)
 model.compile(optimizer='RMSprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
 train_model(model)

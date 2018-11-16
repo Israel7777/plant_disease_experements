@@ -8,6 +8,7 @@ from tensorflow.keras.applications.inception_v3 import preprocess_input
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 IM_WIDTH, IM_HEIGHT = 100, 100  # fixed size for InceptionV3
+INPUT_SHAPE = (IM_WIDTH, IM_HEIGHT, 3)
 NB_EPOCHS = 50
 BATCH_SIZE = 64
 FC_SIZE = 512
@@ -16,15 +17,16 @@ NB_IV3_LAYERS_TO_FREEZE = 172
 TRAIN_DIR = "../../../Dataset/segmented_/train"
 VAL_DIR = "../../../Dataset/segmented_/val"
 
-MODEL_STORE_TEMPLATE = "../Models/InceptionV3-finetuning-{}.h5"
-MODEL_LOG_TEMPLATE = "inception_scratch_log_{}.csv"
+MODEL_STORE_TEMPLATE = "../Models/InceptionV3-{}.h5"
+MODEL_LOG_TEMPLATE = "{}_iv3_log.csv"
 
-def train_model(model):
-    identifier = input('Enter identifying model name: ')
+nb_classes = len(glob.glob(TRAIN_DIR + "/*"))
+
+def train_model(model, plot=False):
+    identifier = input('Enter model name to identify log and saved model: ')
     CSV_LOG_FILE = MODEL_LOG_TEMPLATE.format(identifier)
 
     nb_train_samples = get_nb_files(TRAIN_DIR)
-    nb_classes = len(glob.glob(TRAIN_DIR + "/*"))
     nb_val_samples = get_nb_files(VAL_DIR)
     nb_epoch = int(NB_EPOCHS)
     batch_size = int(BATCH_SIZE)
@@ -50,7 +52,8 @@ def train_model(model):
 
     model.save(output_model_file)
 
-    plot_training(history_ft)
+    if plot:
+        plot_training(history_ft)
 
 
 def get_nb_files(directory):
